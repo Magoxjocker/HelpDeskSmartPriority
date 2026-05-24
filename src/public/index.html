@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <title>HelpDesk Smart Priority</title>
+
+    <link rel="stylesheet" href="css/styles.css">
+
+</head>
+
+<body>
+
+    <header>
+
+        <h1>¡CREAR TICKET!</h1>
+
+        <p>HelpDesk Smart Priority</p>
+
+    </header>
+
+    <main class="contenedor">
+
+        <!-- =========================================================
+             LOGIN
+        ========================================================== -->
+
+        <section id="loginCard" class="card">
+
+            <h2>Login Administrador</h2>
+
+            <input type="text" id="usuario" placeholder="Usuario">
+
+            <input type="password" id="password" placeholder="Contraseña">
+
+            <button onclick="login()">Ingresar</button>
+
+            <p id="mensajeLogin" class="mensaje"></p>
+
+        </section>
+
+        <!-- =========================================================
+             PANEL PRINCIPAL
+        ========================================================== -->
+
+        <section id="panelAdmin" class="oculto">
+
+            <!-- =========================================================
+                 FORMULARIO CREAR TICKET
+            ========================================================== -->
+
+            <div class="card">
+
+                <h2>Nuevo Ticket</h2>
+
+                <form id="ticketForm">
+
+                    <input
+                        type="text"
+                        id="nombreSolicitante"
+                        placeholder="Nombre solicitante"
+                        required
+                    >
+
+                    <input
+                        type="email"
+                        id="correo"
+                        placeholder="Correo electrónico"
+                        required
+                    >
+
+                    <select id="categoria">
+
+                        <option value="hardware">Hardware</option>
+
+                        <option value="software">Software</option>
+
+                        <option value="red">Red</option>
+
+                        <option value="cuenta">Cuenta</option>
+
+                        <option value="otro">Otro</option>
+
+                    </select>
+
+                    <textarea
+                        id="descripcion"
+                        placeholder="Descripción del problema"
+                        required
+                    ></textarea>
+
+                    <select id="impacto">
+
+                        <option value="bajo">Impacto Bajo</option>
+
+                        <option value="medio">Impacto Medio</option>
+
+                        <option value="alto">Impacto Alto</option>
+
+                    </select>
+
+                    <select id="urgencia">
+
+                        <option value="baja">Urgencia Baja</option>
+
+                        <option value="media">Urgencia Media</option>
+
+                        <option value="alta">Urgencia Alta</option>
+
+                    </select>
+
+                    <input
+                        type="number"
+                        id="tiempoEstimado"
+                        placeholder="Tiempo estimado en horas"
+                        required
+                    >
+
+                    <button type="submit">
+
+                        Enviar Ticket
+
+                    </button>
+
+                </form>
+
+                <p id="mensajeTicket" class="mensaje"></p>
+
+            </div>
+
+            <!-- =========================================================
+                 TABLA TICKETS
+            ========================================================== -->
+
+            <div id="listadoTickets" class="card oculto">
+
+                <h2>Listado de Tickets</h2>
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+
+                            <th>ID</th>
+
+                            <th>Solicitante</th>
+
+                            <th>Categoría</th>
+
+                            <th>Impacto</th>
+
+                            <th>Urgencia</th>
+
+                            <th>Estado</th>
+
+                            <th>Prioridad</th>
+
+                            <th>Acción</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="tablaTickets"></tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- =========================================================
+         JAVASCRIPT
+    ========================================================== -->
+
+    <script>
+
+        const API = 'http://localhost:3000/api/tickets';
+
+        let apiKey = '';
+
+        let rolUsuario = '';
+
+        /* =========================================================
+           LOGIN
+        ========================================================== */
+
+        async function login() {
+
+            const usuario = document.getElementById('usuario').value;
+
+            const password = document.getElementById('password').value;
+
+            const respuesta = await fetch(
+                'http://localhost:3000/login',
+                {
+                    method: 'POST',
+
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+
+                    body: JSON.stringify({
+                        usuario,
+                        password
+                    })
+                }
+            );
+
+            const data = await respuesta.json();
+
+            if (respuesta.ok) {
+
+                apiKey = data.apiKey;
+
+                rolUsuario = data.rol;
+
+                document
+                    .getElementById('loginCard')
+                    .classList
+                    .add('oculto');
+
+                document
+                    .getElementById('panelAdmin')
+                    .classList
+                    .remove('oculto');
+
+                if (rolUsuario === 'administrador') {
+
+                    document
+                        .getElementById('listadoTickets')
+                        .classList
+                        .remove('oculto');
+
+                    cargarTickets();
+
+                } else {
+
+                    document
+                        .getElementById('listadoTickets')
+                        .classList
+                        .add('oculto');
+
+                }
+
+            } else {
+
+                document
+                    .getElementById('mensajeLogin')
+                    .textContent = data.mensaje;
+
+            }
+
+        }
+
+        /* =========================================================
+           CARGAR TICKETS
+        ========================================================== */
+
+        async function cargarTickets() {
+
+            const respuesta = await fetch(API);
+
+            const tickets = await respuesta.json();
+
+            const tabla = document.getElementById('tablaTickets');
+
+            tabla.innerHTML = '';
+
+            tickets.forEach(ticket => {
+
+                tabla.innerHTML += `
+
+                    <tr>
+
+                        <td>${ticket.id}</td>
+
+                        <td>${ticket.nombreSolicitante}</td>
+
+                        <td>${ticket.categoria}</td>
+
+                        <td>${ticket.impacto}</td>
+
+                        <td>${ticket.urgencia}</td>
+
+                        <td>${ticket.estado}</td>
+
+                        <td>
+
+                            <div class="
+                                prioridad
+                                ${ticket.prioridad === 'Crítica' ? 'prioridad-critica' : ''}
+                                ${ticket.prioridad === 'Alta' ? 'prioridad-alta' : ''}
+                                ${ticket.prioridad === 'Media' ? 'prioridad-media' : ''}
+                                ${ticket.prioridad === 'Baja' ? 'prioridad-baja' : ''}
+                            ">
+                                ${ticket.prioridad}
+                            </div>
+
+                        </td>
+
+                        <td>
+
+                            ${rolUsuario === 'administrador' ? `
+
+                                <button
+                                    class="btn-eliminar"
+                                    onclick="eliminarTicket(${ticket.id})"
+                                >
+
+                                    Eliminar
+
+                                </button>
+
+                            ` : 'Sin permiso'}
+
+                        </td>
+
+                    </tr>
+
+                `;
+
+            });
+
+        }
+
+        /* =========================================================
+           CREAR TICKET
+        ========================================================== */
+
+        document
+            .getElementById('ticketForm')
+            .addEventListener('submit', async (e) => {
+
+                e.preventDefault();
+
+                const ticket = {
+
+                    nombreSolicitante:
+                        document
+                            .getElementById('nombreSolicitante')
+                            .value,
+
+                    correo:
+                        document
+                            .getElementById('correo')
+                            .value,
+
+                    categoria:
+                        document
+                            .getElementById('categoria')
+                            .value,
+
+                    descripcion:
+                        document
+                            .getElementById('descripcion')
+                            .value,
+
+                    impacto:
+                        document
+                            .getElementById('impacto')
+                            .value,
+
+                    urgencia:
+                        document
+                            .getElementById('urgencia')
+                            .value,
+
+                    tiempoEstimado:
+                        document
+                            .getElementById('tiempoEstimado')
+                            .value,
+
+                    estado: 'pendiente'
+
+                };
+
+                const respuesta = await fetch(API, {
+
+                    method: 'POST',
+
+                    headers: {
+
+                        'Content-Type': 'application/json',
+
+                        'x-api-key': apiKey
+
+                    },
+
+                    body: JSON.stringify(ticket)
+
+                });
+
+                const data = await respuesta.json();
+
+                document
+                    .getElementById('mensajeTicket')
+                    .textContent = data.mensaje;
+
+                document
+                    .getElementById('ticketForm')
+                    .reset();
+
+                if (rolUsuario === 'administrador') {
+
+                    cargarTickets();
+
+                }
+
+            });
+
+        /* =========================================================
+           ELIMINAR TICKET
+        ========================================================== */
+
+        async function eliminarTicket(id) {
+
+            const confirmar = confirm(
+                '¿Seguro que deseas eliminar este ticket?'
+            );
+
+            if (!confirmar) return;
+
+            await fetch(`${API}/${id}`, {
+
+                method: 'DELETE',
+
+                headers: {
+
+                    'x-api-key': apiKey
+
+                }
+
+            });
+
+            cargarTickets();
+
+        }
+
+    </script>
+
+</body>
+
+</html>
