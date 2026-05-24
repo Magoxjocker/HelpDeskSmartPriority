@@ -8,7 +8,9 @@ router.get('/tickets', ticketController.listarTickets);
 router.get('/tickets/:id', ticketController.obtenerTicketPorId);
 
 router.post('/tickets', auth, ticketController.crearTicket);
-router.put('/tickets/:id', auth, ticketController.actualizarTicket);
-router.delete('/tickets/:id', auth, ticketController.eliminarTicket);
+
+router.patch('/tickets/:id/estado', auth, ticketController.actualizarEstadoTicket);
+
+router.delete('/tickets/:id', auth, ticketController.cerrarTicket);
 
 module.exports = router;

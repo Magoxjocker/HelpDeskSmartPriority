@@ -471,6 +471,31 @@ td {
 
 }
 
+/* =========================================================
+   SELECTOR DE ESTADO
+   ========================================================= */
+
+td select {
+
+    min-width: 160px;
+
+    width: 160px;
+
+    padding: 10px;
+
+    font-size: 0.95rem;
+
+    font-weight: bold;
+
+    text-align: center;
+
+    background: var(--papel-viejo);
+
+    border: var(--borde-medio);
+
+    box-shadow: 3px 3px 0 var(--negro-tinta);
+
+}
 /* Centrado vertical y horizontal */
 
 td {

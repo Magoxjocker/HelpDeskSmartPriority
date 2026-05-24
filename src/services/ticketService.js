@@ -6,13 +6,8 @@ function calcularPrioridad(impacto, urgencia, categoria, tiempoEstimado) {
 
     let puntaje = puntosImpacto[impacto] + puntosUrgencia[urgencia];
 
-    if (categoria === 'red' || categoria === 'cuenta') {
-        puntaje += 1;
-    }
-
-    if (tiempoEstimado > 4) {
-        puntaje += 1;
-    }
+    if (categoria === 'red' || categoria === 'cuenta') puntaje += 1;
+    if (tiempoEstimado > 4) puntaje += 1;
 
     if (puntaje <= 3) return 'Baja';
     if (puntaje <= 5) return 'Media';
@@ -21,7 +16,15 @@ function calcularPrioridad(impacto, urgencia, categoria, tiempoEstimado) {
 }
 
 async function listarTickets() {
-    const [rows] = await db.query('SELECT * FROM tickets');
+    const [rows] = await db.query('SELECT * FROM tickets ORDER BY id DESC');
+    return rows;
+}
+
+async function listarTicketsPorUsuario(usuario) {
+    const [rows] = await db.query(
+        'SELECT * FROM tickets WHERE usuarioCreador = ? ORDER BY id DESC',
+        [usuario]
+    );
     return rows;
 }
 
@@ -40,9 +43,10 @@ async function crearTicket(ticket) {
 
     const [result] = await db.query(
         `INSERT INTO tickets 
-        (nombreSolicitante, correo, categoria, descripcion, impacto, urgencia, tiempoEstimado, estado, prioridad)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (usuarioCreador, nombreSolicitante, correo, categoria, descripcion, impacto, urgencia, tiempoEstimado, estado, prioridad)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
+            ticket.usuarioCreador,
             ticket.nombreSolicitante,
             ticket.correo,
             ticket.categoria,
@@ -62,52 +66,29 @@ async function crearTicket(ticket) {
     };
 }
 
-async function actualizarTicket(id, ticket) {
-    const prioridad = calcularPrioridad(
-        ticket.impacto,
-        ticket.urgencia,
-        ticket.categoria,
-        Number(ticket.tiempoEstimado)
-    );
-
+async function actualizarEstadoTicket(id, estado) {
     const [result] = await db.query(
-        `UPDATE tickets SET 
-        nombreSolicitante = ?, 
-        correo = ?, 
-        categoria = ?, 
-        descripcion = ?, 
-        impacto = ?, 
-        urgencia = ?, 
-        tiempoEstimado = ?, 
-        estado = ?, 
-        prioridad = ?
-        WHERE id = ?`,
-        [
-            ticket.nombreSolicitante,
-            ticket.correo,
-            ticket.categoria,
-            ticket.descripcion,
-            ticket.impacto,
-            ticket.urgencia,
-            ticket.tiempoEstimado,
-            ticket.estado,
-            prioridad,
-            id
-        ]
+        'UPDATE tickets SET estado = ? WHERE id = ?',
+        [estado, id]
     );
 
     return result;
 }
 
-async function eliminarTicket(id) {
-    const [result] = await db.query('DELETE FROM tickets WHERE id = ?', [id]);
+async function cerrarTicket(id, motivoCierre) {
+    const [result] = await db.query(
+        'UPDATE tickets SET estado = ?, motivoCierre = ? WHERE id = ?',
+        ['cerrado', motivoCierre, id]
+    );
+
     return result;
 }
 
 module.exports = {
     listarTickets,
+    listarTicketsPorUsuario,
     obtenerTicketPorId,
     crearTicket,
-    actualizarTicket,
-    eliminarTicket
+    actualizarEstadoTicket,
+    cerrarTicket
 };
